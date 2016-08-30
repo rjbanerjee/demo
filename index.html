@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Bug Tracker</title>
+	<style>
+		section{
+			margin-bottom: 10px;
+
+		}
+		.closed{
+			color : red;
+			text-decoration: line-through;
+			font-weight: bold;
+			font-style: italic;
+		}
+		ol{
+			list-style: none;
+			width: 400px;
+			-webkit-padding-start: 0px;
+		}
+		li{
+			margin-bottom: 5px;
+			border: 1px solid gray;
+			padding: 5px;
+			background-color: #e7e7e7;
+			border-radius: 4px;
+			margin-left : 0px;
+		}
+		li span{
+			cursor: pointer;
+		}
+
+	</style>
+	<script src="react.js"></script>
+	<script src="react-dom.js"></script>
+	<script src="browser.min.js"></script>
+	<script type="text/babel">
+		var bugsApp = (function(){
+			var bugs = [
+				{id : 1, name : 'Object reference not set to an instance', isClosed : false},
+				{id : 2, name : 'Server communication failure', isClosed : true},
+				{id : 3, name : 'User request is not acknowledged', isClosed : false},
+			];
+
+			function addNewBug(bugName){
+				var newId = bugs.reduce((result, bug) => 
+					result > bug.id ? result : bug.id
+				,0) + 1;
+				var newBug = {
+					id : newId,
+					name : bugName,
+					isClosed : false
+				};
+				bugs.push(newBug);
+				triggerUpdate();
+			}
+
+			function toggleBug(bug){
+				bug.isClosed = !bug.isClosed;
+				triggerUpdate();
+			}
+
+			var _onUpdateCallbacks = [];
+			function subscribeOnUpdate(fn){
+				_onUpdateCallbacks.push(fn);
+			}
+
+			function triggerUpdate(){
+				_onUpdateCallbacks.forEach(function(fn){
+					fn();
+				})
+			}
+
+			return {
+				list : bugs,
+				addNew : addNewBug,
+				toggle : toggleBug,
+				onUpdate : subscribeOnUpdate
+			};
+		})();
+		
+		var BugTrackerApp = React.createClass({
+			render : function(){
+				return (
+
+					<div>
+						<h1>Bug Tracker</h1>
+						<hr />
+						<div id="contents">
+							<BugStats list={this.props.data.list}></BugStats>
+							<BugEdit onAddNew={this.props.data.addNew}></BugEdit>
+							<BugList list={this.props.data.list} toggle={this.props.data.toggle}></BugList>
+						</div>
+					</div>
+				);
+			}
+
+		});
+
+		var BugStats = React.createClass({
+			render : function(){
+				var closedCount = this.props.list.reduce(function(result, bug){
+					return bug.isClosed ? ++result : result;
+				}, 0);
+				return (
+					<section className="stats">
+						<span className="closed">{closedCount}</span>
+						<span>/</span>
+						<span>{this.props.list.length}</span>
+					</section>
+				);
+			}
+		});
+
+		var BugEdit = React.createClass({
+			addNew : function(){
+				var bugName = this.refs.txtBugName.value;
+				this.props.onAddNew(bugName);
+			},
+			render : function(){
+
+				return (
+					<section class="new">
+						<label htmlFor="">Bug :</label>
+						<input type="text" ref="txtBugName" />
+						<input type="button" value="Add New" onClick={this.addNew}/>
+					</section>
+				);
+			}
+		});
+
+		var BugList = React.createClass({
+			render : function(){
+				var self = this;
+				var BugItems = this.props.list.map(
+					bug => (
+						<BugItem key={bug.id} bug={bug} toggle={self.props.toggle}>
+						</BugItem>
+					));
+				
+				return (
+					<section className="list">
+						<ol>
+							{BugItems}
+						</ol>
+					</section>
+				);
+			}
+		})
+
+		var BugItem = React.createClass({
+			toggle : function(){
+				this.props.toggle(this.props.bug)
+			},
+			render : function(){
+				
+					return (
+						<li  onClick={this.toggle}>
+							{ this.props.bug.isClosed ? <span className="closed">{this.props.bug.name}</span> : <span>{this.props.bug.name}</span>}
+						</li>
+					)
+				
+			}
+		})
+		bugsApp.onUpdate(render);
+
+		function render(){
+			ReactDOM.render(<BugTrackerApp data={bugsApp}/>, document.getElementById("bugApp"));
+		}
+		render();
+	</script>
+</head>
+<body >
+	<div id="bugApp"></div>
+		
+		
+		
+	
+</body>
+</html>
